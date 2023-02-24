@@ -9,11 +9,23 @@ defmodule LiveViewStudioWeb.ServersLive do
     socket =
       assign(socket,
         servers: servers,
-        selected_server: hd(servers),
         coffees: 0
       )
 
     {:ok, socket}
+  end
+
+  def handle_params(%{"id" => id}, _uri, socket) do
+    server = Servers.get_server!(id)
+    {:noreply, assign(socket, selected_server: server, page_title: "What's up?#{server.name}")}
+  end
+
+  def handle_params(_, _uri, socket) do
+    {:noreply,
+     assign(
+       socket,
+       selected_server: hd(socket.assigns.servers)
+     )}
   end
 
   def render(assigns) do
@@ -24,6 +36,7 @@ defmodule LiveViewStudioWeb.ServersLive do
         <div class="nav">
           <a
             :for={server <- @servers}
+            patch={~p"/servers?#{[id: server]}"}
             class={if server == @selected_server, do: "selected"}
           >
             <span class={server.status}></span>
@@ -64,7 +77,9 @@ defmodule LiveViewStudioWeb.ServersLive do
               </blockquote>
             </div>
           </div>
-          <div class="links"></div>
+          <div class="links">
+            <.link navigate={~p"/light"}>Adjust Light</.link>
+          </div>
         </div>
       </div>
     </div>
