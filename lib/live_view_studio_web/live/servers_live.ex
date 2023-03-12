@@ -18,8 +18,6 @@ defmodule LiveViewStudioWeb.ServersLive do
   end
 
   def handle_params(%{"id" => id}, _uri, socket) do
-    IO.inspect(self(), label: "HANDLE PARAMS ID=#{id}")
-
     server = Servers.get_server!(id)
 
     {:noreply,
@@ -48,7 +46,7 @@ defmodule LiveViewStudioWeb.ServersLive do
         <div class="nav">
           <.link
             :for={server <- @servers}
-            patch={~p"/servers?#{[id: server]}"}
+            patch={~p"/servers/#{server}"}
             class={if server == @selected_server, do: "selected"}
           >
             <span class={server.status}></span>
