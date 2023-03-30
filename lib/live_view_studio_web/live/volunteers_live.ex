@@ -10,10 +10,9 @@ defmodule LiveViewStudioWeb.VolunteersLive do
     changeset = Volunteers.change_volunteer(%Volunteer{})
 
     socket =
-      assign(socket,
-        volunteers: volunteers,
-        form: to_form(changeset)
-      )
+      socket
+      |> stream(:volunteers, volunteers)
+      |> assign(:form, to_form(changeset))
 
     {:ok, socket}
   end
@@ -22,30 +21,46 @@ defmodule LiveViewStudioWeb.VolunteersLive do
     ~H"""
     <h1>Volunteer Check-In</h1>
     <div id="volunteer-checkin">
-    <.form for={@form} phx-submit="save" phx-change='validate'>
-      <.input field={@form[:name]} placeholder="Name" autocomplete="off" phx-debounce="2000"/>
-      <.input field={@form[:phone]} type="tel" placeholder="phone" autocomplete="off" phx-debounce="blur"/>
-      <.button phx-disable-with="Saving...">
-        Check in
-      </.button>
-    </.form>
+      <.form for={@form} phx-submit="save" phx-change="validate">
+        <.input
+          field={@form[:name]}
+          placeholder="Name"
+          autocomplete="off"
+          phx-debounce="2000"
+        />
+        <.input
+          field={@form[:phone]}
+          type="tel"
+          placeholder="phone"
+          autocomplete="off"
+          phx-debounce="blur"
+        />
+        <.button phx-disable-with="Saving...">
+          Check in
+        </.button>
+      </.form>
       <pre>
         <%!-- <%= inspect(@form, pretty: true) %> --%>
       </pre>
-      <div
-        :for={volunteer <- @volunteers}
-        class={"volunteer #{if volunteer.checked_out, do: "out"}"}
-      >
-        <div class="name">
-          <%= volunteer.name %>
-        </div>
-        <div class="phone">
-          <%= volunteer.phone %>
-        </div>
-        <div class="status">
-          <button>
-            <%= if volunteer.checked_out, do: "Check In", else: "Check Out" %>
-          </button>
+      <div id="volunteers" phx-update="stream">
+        <div
+          :for={{volunteer_id, volunteer} <- @streams.volunteers}
+          class={"volunteer #{if volunteer.checked_out, do: "out"}"}
+          id={volunteer_id}
+        >
+          <div class="name">
+            <%= volunteer.name %>
+          </div>
+          <div class="phone">
+            <%= volunteer.phone %>
+          </div>
+          <div class="status">
+            <button>
+              <%= if volunteer.checked_out,
+                do: "Check In",
+                else: "Check Out" %>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -65,11 +80,7 @@ defmodule LiveViewStudioWeb.VolunteersLive do
     case Volunteers.create_volunteer(volunteer_params) do
       {:ok, volunteer} ->
         socket =
-          update(
-            socket,
-            :volunteers,
-            fn volunteers -> [volunteer | volunteers] end
-          )
+          stream_insert(socket, :volunteers, volunteer, at: 0)
 
         changeset = Volunteers.change_volunteer(%Volunteer{})
         {:noreply, assign(socket, :form, to_form(changeset))}
